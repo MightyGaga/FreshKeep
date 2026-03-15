@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: foodItems
+    // Fields:
+    //   - name: string (required, 1-100 chars)
+    //   - category: string (required, enum)
+    //   - storageZone: string (required, enum)
+    //   - expiryDate: string (required, ISO8601)
+    //   - quantity: number (optional)
+    //   - unit: string (optional)
+    //   - userId: string (required, matches auth.uid)
+    //   - createdAt: string (required, ISO8601)
+    //
+    // Collection: mealLogs
+    // Fields:
+    //   - date: string (required, ISO8601)
+    //   - type: string (required, enum)
+    //   - items: list (optional, strings)
+    //   - cost: number (optional, >= 0)
+    //   - notes: string (optional)
+    //   - userId: string (required, matches auth.uid)
+    //   - createdAt: string (required, ISO8601)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return true; // No login required
+    }
+
+    function isOwner(userId) {
+      return userId == 'public-user';
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function isValidFoodItem(data) {
+      return data.keys().hasAll(['name', 'category', 'storageZone', 'expiryDate', 'userId', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.category in ['vegetables', 'meat', 'fruit', 'seafood', 'seasoning', 'drinks', 'prepared', 'other'] &&
+             data.storageZone in ['cold', 'frozen', 'room', 'cupboard'] &&
+             isValidDateString(data.expiryDate) &&
+             isValidDateString(data.createdAt) &&
+             data.userId == 'public-user' &&
+             (!('quantity' in data) || data.quantity is number) &&
+             (!('unit' in data) || (data.unit is string && data.unit.size() <= 20));
+    }
+
+    function isValidMealLog(data) {
+      return data.keys().hasAll(['date', 'type', 'userId', 'createdAt']) &&
+             isValidDateString(data.date) &&
+             data.type in ['breakfast', 'lunch', 'dinner', 'snack'] &&
+             data.userId == 'public-user' &&
+             isValidDateString(data.createdAt) &&
+             (!('cost' in data) || (data.cost is number && data.cost >= 0)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000)) &&
+             (!('items' in data) || data.items is list);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /foodItems/{itemId} {
+      allow read: if true;
+      allow create: if isValidFoodItem(request.resource.data);
+      allow update: if isOwner(resource.data.userId) && isValidFoodItem(request.resource.data) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isOwner(resource.data.userId);
+    }
+
+    match /mealLogs/{logId} {
+      allow read: if true;
+      allow create: if isValidMealLog(request.resource.data);
+      allow update: if isOwner(resource.data.userId) && isValidMealLog(request.resource.data) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isOwner(resource.data.userId);
+    }
+  }
+}

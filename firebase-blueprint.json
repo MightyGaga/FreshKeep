@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "FoodItem": {
+      "title": "Food Item",
+      "description": "An item stored in the fridge or pantry",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the food item" },
+        "category": { "type": "string", "enum": ["vegetables", "meat", "fruit", "seafood", "seasoning", "drinks", "prepared", "other"] },
+        "storageZone": { "type": "string", "enum": ["cold", "frozen", "room", "cupboard"] },
+        "expiryDate": { "type": "string", "format": "date-time", "description": "When the item expires" },
+        "quantity": { "type": "number", "description": "Current quantity" },
+        "unit": { "type": "string", "description": "Unit of measurement (e.g., pcs, kg, %)" },
+        "userId": { "type": "string", "description": "Owner of the item" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "category", "storageZone", "expiryDate", "userId"]
+    },
+    "MealLog": {
+      "title": "Meal Log",
+      "description": "A record of a meal consumed",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time", "description": "Date of the meal" },
+        "type": { "type": "string", "enum": ["breakfast", "lunch", "dinner", "snack"] },
+        "items": { "type": "array", "items": { "type": "string" }, "description": "List of food items used" },
+        "cost": { "type": "number", "description": "Estimated cost of the meal" },
+        "notes": { "type": "string", "description": "Additional notes or recipe" },
+        "userId": { "type": "string", "description": "User who logged the meal" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "type", "userId"]
+    }
+  },
+  "firestore": {
+    "foodItems": {
+      "schema": "FoodItem",
+      "description": "Collection of food items"
+    },
+    "mealLogs": {
+      "schema": "MealLog",
+      "description": "Collection of meal logs"
+    }
+  }
+}
